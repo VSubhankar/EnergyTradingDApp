@@ -5,153 +5,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hyperledger Fabric Interaction</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
         body {
             background: #360033;
-            background: -webkit-linear-gradient(to right, #0b8793, #360033);
             background: linear-gradient(to right, #0b8793, #360033);
             color: #ffffff;
             margin: 0;
             padding: 0;
             height: 100%;
             font-family: 'Roboto', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
         }
+
+        .container {
+            margin-top: 50px;
+        }
+
         .floating-container {
             background-color: #2c003e;
             border-radius: 30px;
             border: 2px solid #000000;
-            max-width: 600px;
-            width: 90%;
             padding: 40px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
         }
-        .floating-text {
-            animation: pulse 3s ease-in-out infinite;
-            text-align: center;
-            margin-bottom: 20px;
+
+        .btn-custom {
+            background-color: #0b8793;
+            border-color: #0b8793;
+            color: #ffffff;
+            transition: background-color 0.3s, transform 0.3s;
         }
-        .form-control, .form-select {
-            background-color: #333;
-            color: #f4f4f4;
-            border-color: #444;
+
+        .btn-custom:hover {
+            background-color: #360033;
+            transform: scale(1.1);
         }
-        .form-control::placeholder {
-            color: #bbb;
-        }
-        .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
-            width: 100%;
-            padding: 10px;
-            font-size: 1.2rem;
-        }
-        .result {
+
+        .output-container {
             margin-top: 20px;
-            padding: 15px;
-            background-color: #e9ecef;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            color: #333;
-            font-family: 'Roboto', sans-serif;
         }
-        #themeToggle {
-            margin-bottom: 20px;
-            width: 100%;
-            padding: 10px;
-            background-color: #ffeb3b;
+
+        .output {
+            background-color: #1f1f1f;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-y: auto;
+            max-height: 300px;
+        }
+
+        .close-btn {
+            background: none;
             border: none;
-            color: #000;
-            font-size: 1.2rem;
+            color: white;
+            font-size: 1.5rem;
+            position: absolute;
+            top: 10px;
+            right: 10px;
             cursor: pointer;
-        }
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.1);
-            }
         }
     </style>
 </head>
 <body>
 
-    <div class="floating-container">
-        <button id="themeToggle" class="btn btn-warning mb-3">Switch to Dark Theme</button>
+    <div class="container">
+        <div class="floating-container text-center">
+            <h1 class="mb-4">Hyperledger Fabric Interaction</h1>
 
-        <h2 class="floating-text bold-text">Hyperledger Fabric Interaction</h2>
+            <div class="d-grid gap-2">
+                <button class="btn btn-custom" onclick="invokeChaincode('InitLedger')">Initialize Ledger</button>
+                <button class="btn btn-custom" onclick="queryChaincode('ViewAllAssets')">View Prosumers and Consumers</button>
+                <button class="btn btn-custom" onclick="queryChaincode('GetCurrentGridPower')">View Current Grid Power</button>
+                <button class="btn btn-custom" onclick="invokeChaincode('tradeN', '4')">Initialize 4 Energy Transactions</button>
+                <button class="btn btn-custom" onclick="queryChaincode('ViewTxnLog')">View Transaction Log</button>
+            </div>
 
-        <div class="mb-3">
-            <label for="action" class="form-label">Choose Action:</label>
-            <select id="action" class="form-select">
-                <option value="InitLedger">Init Ledger</option>
-                <option value="CreateAsset">Create Asset</option>
-                <option value="ReadAsset">Read Asset</option>
-                <option value="UpdateAsset">Update Asset</option>
-                <option value="DeleteAsset">Delete Asset</option>
-                <option value="TransferAsset">Transfer Asset</option>
-                <option value="ViewAllAssets">View All Assets</option>
-                <option value="CalcAndViewCG">Calculate and View CG</option>
-                <option value="TradeN">Trade N</option>
-                <option value="ViewTxnLog">View Transaction Log</option>
-                <option value="GetCurrentGridPower">Get Current Grid Power</option>
-            </select>
-        </div>
-
-        <div class="mb-3">
-            <label for="params" class="form-label">Parameters (comma separated):</label>
-            <input type="text" id="params" class="form-control" placeholder="Enter parameters">
-        </div>
-
-        <div class="d-grid">
-            <button onclick="interactWithContract()" class="btn btn-primary">Execute</button>
-        </div>
-
-        <div class="result mt-4" id="result">
-            Result will be displayed here.
+            <div class="output-container mt-4">
+                <h4>Output:</h4>
+                <div id="output" class="output text-start"></div>
+            </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('themeToggle').addEventListener('click', function () {
-            document.body.classList.toggle('dark-theme');
-            if (document.body.classList.contains('dark-theme')) {
-                this.textContent = 'Switch to Light Theme';
-                document.body.style.background = 'linear-gradient(to right, #232526, #414345)';
-                document.querySelector('.floating-container').style.backgroundColor = '#1e1e1e';
-            } else {
-                this.textContent = 'Switch to Dark Theme';
-                document.body.style.background = 'linear-gradient(to right, #0b8793, #360033)';
-                document.querySelector('.floating-container').style.backgroundColor = '#2c003e';
-            }
-        });
-
-        async function interactWithContract() {
-            const action = document.getElementById('action').value;
-            const params = document.getElementById('params').value.split(',');
-
-            let url = `/api/${action}`;
-            let options = {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ params })
-            };
-
+        function invokeChaincode(functionName, arg = '') {
             try {
-                let response = await fetch(url, options);
-                let result = await response.text();
-                document.getElementById('result').textContent = result;
+                const command = `peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n basic --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"${functionName}","Args":["${arg}"]}'`;
+                displayOutput(command);
             } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('result').textContent = 'Error occurred: ' + error;
+                displayError();
             }
         }
-    </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        function queryChaincode(functionName) {
+            try {
+                const command = `peer chaincode query -C mychannel -n basic -c '{"Args":["${functionName}"]}'`;
+                displayOutput(command);
+            } catch (error) {
+                displayError();
+            }
+        }
+
+        function displayOutput(command) {
+            const outputElement = document.getElementById('output');
+            outputElement.innerHTML = `<p><code>${command}</code></p>`;
+        }
+
+        function displayError() {
+            const outputElement = document.getElementById('output');
+            outputElement.innerHTML = `<p style="color: red;"><strong>Missing Blockchain Configuration</strong></p>`;
+        }
+    </script>
 </body>
 </html>
